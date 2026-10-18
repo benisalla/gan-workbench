@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gan-workbench"
+version = "0.1.0"
+description = "Ten GAN variants for images in plain PyTorch (GAN, DCGAN, cGAN, ACGAN, LSGAN, WGAN, WGAN-GP, SNGAN/hinge, pix2pix, CycleGAN) sharing one training loop, one data pipeline and one evaluation, compared on MNIST and synthetic data."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = [
+  "gan", "dcgan", "wgan", "wgan-gp", "conditional-gan", "acgan", "lsgan", "sngan", "hinge-loss",
+  "pix2pix", "cyclegan", "pytorch", "generative-models", "image-generation", "deep-learning",
+  "fid", "educational",
+]
+dependencies = [
+  "numpy>=1.24",
+  "torch>=2.4",
+  "torchvision>=0.19",
+  "matplotlib>=3.7",
+]
+
+[project.scripts]
+gans-data = "gans.data:main"
+gans-train = "gans.train:main"
+gans-sample = "gans.sample:main"
+gans-eval = "gans.evaluate:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.9", "nbformat>=5.10"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gans"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["notebooks/*.ipynb", "legacy"]
+
+# CPU-only torch wheels for uv users; plain `pip install` still resolves from PyPI.
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }

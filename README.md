@@ -32,7 +32,7 @@ output and the true mask, at step 0 and after 800 steps:
 ![pix2pix progress](assets/progress_pix2pix.gif)
 
 To regenerate these, run `python scripts/make_progress.py` (trains with snapshots, about 15 min on
-a CPU) or `--from-saved` to redraw from `assets/progress/*.pt`.
+a CPU) or `--from-saved` to redraw from the snapshots that a previous run saved locally in `assets/progress/*.pt` (gitignored).
 
 The networks are small on purpose (0.1-3 M parameters): the point is to watch each mechanism
 work on a CPU in minutes, then run the same code longer on a free GPU.

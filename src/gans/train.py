@@ -90,10 +90,12 @@ def _forever(loader):
         yield from loader
 
 
-def train(cfg: TrainConfig, verbose: bool = True, data=None) -> dict:
+def train(cfg: TrainConfig, verbose: bool = True, data=None, on_step=None) -> dict:
     """Train one GAN type; returns {"method", "history", "seconds", "checkpoint", ...}.
 
     ``data`` (a ``GanData``) overrides ``cfg.dataset``, e.g. for the facades set in the notebook.
+    ``on_step(step, method)`` is called once before training (step 0) and after every generator
+    step, e.g. to snapshot samples for a progress GIF (``scripts/make_progress.py``).
     """
     cfg = resolve(cfg)
     set_threads(cfg.threads)
@@ -116,6 +118,8 @@ def train(cfg: TrainConfig, verbose: bool = True, data=None) -> dict:
     batches = _forever(data.loader(cfg.batch_size, cfg.seed))
     history: dict[str, list] = defaultdict(list)
     fixed = _fixed_inputs(method, data)
+    if on_step:
+        on_step(0, method)
     t0 = time.time()
     for step in range(1, cfg.steps + 1):
         log = step % cfg.log_every == 0 or step == 1
@@ -128,6 +132,8 @@ def train(cfg: TrainConfig, verbose: bool = True, data=None) -> dict:
             stats.update(method.g_step(batch))
         if ema:
             ema.update(method.G)
+        if on_step:
+            on_step(step, method)
         if log:
             history["step"].append(step)
             history["time"].append(time.time() - t0)

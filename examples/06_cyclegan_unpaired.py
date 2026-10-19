@@ -12,7 +12,7 @@ from gans.evaluate import evaluate_method
 from gans.train import train
 from gans.viz import save_grid
 
-r = train(TrainConfig(method="cyclegan", steps=500, log_every=20, sample_every=0,
+r = train(TrainConfig(method="cyclegan", steps=400, log_every=20, sample_every=0,
                       output_dir="examples/output/06_cyclegan"))
 method, data = r["model"], r["data"]
 a, b_true = data.test[0][:12], data.test[1][:12]

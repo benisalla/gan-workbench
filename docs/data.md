@@ -8,6 +8,7 @@ pipeline and no worker processes: a `TensorDataset` + `DataLoader(shuffle=True, 
 |---|---|---|---|---|
 | `mnist` | download 11 MB | 60k / 10k, 1×28×28, 10 labels | digits | all noise GANs (results) |
 | `fashion` | download 30 MB | 60k / 10k, 1×28×28, 10 labels | clothes | same, harder |
+| `cifar10` | download 170 MB | 50k / 10k, 3×32×32, 10 labels | colour photos | the GPU notebook |
 | `shapes` | generated | 12k / 2k, 1×28×28, 4 labels | one white circle / square / triangle / cross, random size and position | offline tests and examples |
 | `paired-shapes` | generated | 4k / 256 pairs, 1×32×32 | input: 1-3 shapes with random brightness gradients on a noisy, sloped background; target: their binary mask | `pix2pix` |
 | `unpaired-shapes` | generated | 4k A + 4k B, 1×32×32 | A: filled shapes; B: 2-px outlines of *other*, independently drawn shapes; test keeps the true outline of each A | `cyclegan` |

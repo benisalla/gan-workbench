@@ -81,7 +81,7 @@ def main() -> None:
             sample_mosaic(ds, names, ASSETS / f"mosaic_{ds}.png")
         hist = {n: json.loads((ASSETS / "histories" / f"{ds}_{n}.json").read_text()) for n in names
                 if (ASSETS / "histories" / f"{ds}_{n}.json").exists()}
-        if hist:
+        if len(hist) > 1:
             compare_curves(hist, "d_fake", ASSETS / f"compare_dfake_{ds}.png", "D(G(z)) during training (smoothed)")
             compare_curves(hist, "update_g", ASSETS / f"compare_update_g_{ds}.png",
                            "generator update ratio ||dθ||/||θ||", logy=True)

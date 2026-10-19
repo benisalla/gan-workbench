@@ -1,0 +1,12 @@
+{
+  "pix2pix": {
+    "method": "pix2pix",
+    "dataset": "paired-shapes",
+    "steps": 1200,
+    "seconds": 189.8,
+    "params_g": 386817,
+    "params_d": 42801,
+    "l1": 0.01880434714257717,
+    "iou": 0.9771620035171509
+  }
+}

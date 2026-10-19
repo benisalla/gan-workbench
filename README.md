@@ -10,7 +10,28 @@ with tests, runnable examples and a Kaggle/Colab notebook for the longer GPU run
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c.svg)](https://pytorch.org)
-[![Tests](https://img.shields.io/badge/tests-TESTCOUNT%20passing-brightgreen.svg)](docs/testing.md)
+[![Tests](https://img.shields.io/badge/tests-43%20passing-brightgreen.svg)](docs/testing.md)
+
+## Before and after training
+
+The problem: an untrained generator turns noise into noise. Each panel below uses the
+**same fixed z** (and, for cGAN, the same labels: digits 0-9 then 0-5) at step 0 and at the end
+of a short CPU run on MNIST. The GIF replays the same z through snapshots taken during
+those runs.
+
+![untrained vs trained generators](assets/before_after_mnist.png)
+
+![fixed-noise samples improving during training](assets/progress_mnist.gif)
+
+pix2pix on held-out test photos. In each block the rows are the input photo, the generator's
+output and the true mask, at step 0 and after 800 steps:
+
+![pix2pix before and after](assets/before_after_pix2pix.png)
+
+![pix2pix progress](assets/progress_pix2pix.gif)
+
+To regenerate these, run `python scripts/make_progress.py` (trains with snapshots, about 15 min on
+a CPU) or `--from-saved` to redraw from `assets/progress/*.pt`.
 
 The networks are small on purpose (0.1-3 M parameters): the point is to watch each mechanism
 work on a CPU in minutes, then run the same code longer on a free GPU.
@@ -73,7 +94,96 @@ CycleGAN on unpaired shapes.
 python examples/01_train_dcgan.py && python examples/02_train_any_method.py --method lsgan
 ```
 
-RESULTS_SECTION
+## Results
+
+These are **short CPU runs**: one thread on a shared 8-core machine, `--width 32`, batch 64,
+the default hyper-parameters of each method. They show that every method trains through
+the shared loop and how the methods differ. They are not benchmarks; the notebook runs the same code longer on a GPU.
+The times are wall-clock and depend on machine load: `dcgan`, `cgan` and `acgan` ran while the
+machine had a load average of about 20, and the later runs had a load of about 5, so compare
+FID and samples, not minutes.
+
+### MNIST, 28 px, 2 000 generator steps each
+
+Classifier-feature FID / IS: computed with a small CNN trained on MNIST (98.6% test accuracy),
+**not Inception**, on 5 000 samples vs 5 000 test images ([docs/evaluation.md](docs/evaluation.md)).
+The last row is the floor: real training images against real test images.
+
+| method | G / D params | steps | time | FID (clf) ↓ | IS (clf) ↑ | modes ↑ | label acc |
+|---|---|---|---|---|---|---|---|
+| `gan` | 0.24 M / 0.23 M | 2000 | 0.7 min | 399.25 | 3.36 | 10/10 | - |
+| `dcgan` | 0.24 M / 0.04 M | 2000 | 7.2 min | 93.82 | 5.09 | 10/10 | - |
+| `cgan` | 0.27 M / 0.04 M | 2000 | 9.7 min | 29.64 | 8.02 | 10/10 | 87.5% |
+| `acgan` | 0.27 M / 0.07 M | 2000 | 7.8 min | 44.09 | 8.71 | 10/10 | 93.9% |
+| `lsgan` | 0.24 M / 0.04 M | 2000 | 2.7 min | 146.76 | 4.44 | 8/10 | - |
+| `sngan` | 0.24 M / 0.04 M | 2000 | 3.0 min | 57.46 | 5.65 | 10/10 | - |
+| `wgan` | 0.24 M / 0.04 M | 2000 | 8.4 min | 1035.54 | 1.61 | 6/10 | - |
+| `wgan-gp` | 0.24 M / 0.04 M | 1500 | 10.2 min | 127.23 | 4.43 | 10/10 | - |
+| *real train images* | - | - | - | 9.81 | 9.38 | 10/10 | - |
+
+WGAN and WGAN-GP do 5 critic steps per generator step, so 2 000 G steps cost them 10 000 D
+steps. WGAN-GP got 1 500 G steps (7 500 critic steps) to stay inside a 25-minute run.
+
+![samples of the eight noise-to-image methods](assets/mosaic_mnist.png)
+
+What the runs show:
+
+* **Conditioning is the biggest win.** `cgan` (FID 29.6) and `acgan` (44.1) are far ahead of
+  every unconditional method, because the label removes the hardest part of the problem
+  (choosing which digit to draw). The classifier agrees with the requested digit 87.5% / 93.9%
+  of the time. ACGAN's class head gives more readable digits (higher IS, higher label
+  accuracy) but a worse FID than cGAN: its digits vary less within a class.
+* **Convolutions matter more than the loss.** The MLP `gan` (FID 399) makes noisy but
+  recognisable digits; `dcgan`, with the same loss and a similar parameter count, reaches 94.
+* **Spectral norm + hinge (`sngan`, 57.5)** is the best unconditional method here and was
+  one of the fastest per step: Lipschitz control without an extra backward pass.
+* **`lsgan` (147, 8/10 modes)** is the only method that lost classes in this run. The
+  least-squares loss does not protect against mode dropping.
+* **`wgan` with weight clipping did not train in this budget (FID 1036, 6 classes)**. The
+  samples are grey, and nearly every z gives the same shape. Clipping to ±0.01 leaves the
+  critic too little capacity to say anything useful, and RMSprop at 5e-5 is slow. This is the
+  failure that WGAN-GP was designed to fix.
+* **`wgan-gp` (127, 10/10)** learns digits with the same networks once clipping is replaced by
+  the gradient penalty. Its critic score D(G(z)) is unbounded and swings widely early on. It
+  needs more generator steps than the others, and each step costs about 5× more on a CPU.
+
+| curves (`live_plot_gan`) | |
+|---|---|
+| ![dcgan curves](assets/curves_mnist_dcgan.png) | ![wgan-gp curves](assets/curves_mnist_wgan-gp.png) |
+
+![generator update ratio across methods](assets/compare_update_g_mnist.png)
+
+Latent interpolations, one straight line in z per row (cGAN: the label is fixed per row):
+
+| dcgan | cgan |
+|---|---|
+| ![dcgan interpolation](assets/interp_mnist_dcgan.png) | ![cgan interpolation](assets/interp_mnist_cgan.png) |
+
+### Image-to-image on synthetic shapes, 32 px
+
+| method | G / D params | steps | time | L1 ↓ | mask IoU ↑ | cycle L1 ↓ |
+|---|---|---|---|---|---|---|
+| `pix2pix` | 0.39 M / 0.04 M | 1200 | 3.2 min | 0.019 | 0.977 | - |
+| `cyclegan` | 0.77 M / 0.09 M | 600 | 4.0 min | 0.308 | 0.255 | 0.040 |
+| `cyclegan-2000` | 0.77 M / 0.09 M | 2000 | 11.9 min | 0.239 | 0.280 | 0.013 |
+
+`pix2pix` learns the photo → mask mapping almost perfectly (test IoU 0.977), because its
+input and target are paired and the L1 term gives a direct target. Rows: input photo, true
+mask, predicted mask.
+
+![pix2pix test pairs](assets/pix2pix_test_pairs.png)
+
+`cyclegan` is the hard case, and it is only partly solved after 2 000 steps (12 min). The cycle
+error is tiny (0.013), but IoU against the true outline is only 0.28. The figure below shows why
+(rows: a, G_AB(a), G_BA(G_AB(a)), true outline). G_AB already draws outlines, but it fills them
+with a faint high-frequency pattern. G_BA reads that pattern back to rebuild the filled shape.
+This is CycleGAN's known "steganography" shortcut: the cycle loss only requires the round trip
+to be invertible, and hiding the information is easier than learning the real mapping. It is
+then up to D_B to notice the pattern and penalise it, which takes many more steps. The paired
+L1 loss of pix2pix never allows this shortcut.
+
+![cyclegan round trip](assets/cyclegan_a_to_b_to_a.png)
+
 
 ## Repository layout
 
@@ -89,9 +199,9 @@ src/gans/
   evaluate.py   evaluate a checkpoint, real-vs-real baseline; gans-eval
   sample.py     sample grids, per-class grids, interpolations, translations; gans-sample
   viz.py        live_plot_gan curves, grids, comparisons
-tests/          42 fast CPU tests, incl. "DCGAN learns a single image" and "pix2pix overfits a batch"
+tests/          43 fast CPU tests, incl. "DCGAN learns a single image" and "pix2pix overfits a batch"
 examples/       01-06 runnable scripts
-scripts/        compare_all.py (trains + evaluates + copies figures), results_table.py
+scripts/        compare_all.py (train + evaluate + figures), results_table.py, make_progress.py (before/after, GIFs)
 notebooks/      build_notebook.py -> train_colab_kaggle.ipynb (GPU: MNIST, CIFAR-10, Facades)
 docs/           architecture, training, evaluation, data, testing
 legacy/         the original coursework notebooks + what was fixed

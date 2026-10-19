@@ -78,3 +78,9 @@ def test_evaluate_translation_methods(small_cfg):
         m = build_method(small_cfg(name), data.info)
         metrics = evaluate_method(m, data)
         assert 0 <= metrics["iou"] <= 1 and metrics["l1"] > 0
+
+
+def test_on_step_callback_sees_the_untrained_and_every_trained_step(small_cfg):
+    seen = []
+    train(small_cfg("dcgan", steps=3), verbose=False, on_step=lambda step, m: seen.append(step))
+    assert seen == [0, 1, 2, 3]

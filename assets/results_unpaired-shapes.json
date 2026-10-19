@@ -1,0 +1,24 @@
+{
+  "cyclegan": {
+    "method": "cyclegan",
+    "dataset": "unpaired-shapes",
+    "steps": 600,
+    "seconds": 240.3,
+    "params_g": 773634,
+    "params_d": 85090,
+    "l1": 0.3077341318130493,
+    "iou": 0.2552986741065979,
+    "cycle_l1": 0.039991796016693115
+  },
+  "cyclegan-2000": {
+    "method": "cyclegan-2000",
+    "dataset": "unpaired-shapes",
+    "steps": 2000,
+    "seconds": 711.8,
+    "params_g": 773634,
+    "params_d": 85090,
+    "l1": 0.23921753466129303,
+    "iou": 0.2804301977157593,
+    "cycle_l1": 0.013410475105047226
+  }
+}

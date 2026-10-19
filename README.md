@@ -14,7 +14,8 @@ with tests, runnable examples and a Kaggle/Colab notebook for the longer GPU run
 
 ## Before and after training
 
-The problem: an untrained generator turns noise into noise. Each panel below uses the
+The problem: an untrained generator outputs flat grey for every z. Its N(0, 0.02) weights keep
+the final tanh near 0. Each panel below uses the
 **same fixed z** (and, for cGAN, the same labels: digits 0-9 then 0-5) at step 0 and at the end
 of a short CPU run on MNIST. The GIF replays the same z through snapshots taken during
 those runs.
